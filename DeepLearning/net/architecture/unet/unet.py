@@ -1,130 +1,49 @@
-import torch.nn as nn
-import torch.nn.functional as F
-import torch
+from torch.autograd import Variable
+from .unet_layers import *
+import numpy as np
 
-""" 
-    This file defines every layer (or group of layers) that are inside UNet.
-    At the final the architecture UNet is defined as a conjuntion of the elements created.
-"""
-
-class DoubleConv(nn.Module):
-    ''' Applies (conv => BN => ReLU) two times. '''
-
-    def __init__(self, in_ch, out_ch):
-        super(DoubleConv, self).__init__()
-
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            # inplace is for aply ReLU to the original place, saving memory
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            # inplace is for aply ReLU to the original place, saving memory
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-
-class InConv(nn.Module):
-    ''' First Section of U-Net. '''
-
-    def __init__(self, in_ch, out_ch):
-        super(InConv, self).__init__()
-
-        self.conv = DoubleConv(in_ch, out_ch)
-
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-
-class Down(nn.Module):
-    ''' Applies a MaxPool with a Kernel of 2x2,
-        then applies a double convolution pack. '''
-
-    def __init__(self, in_ch, out_ch):
-        super(Down, self).__init__()
-
-        self.mpconv = nn.Sequential(
-            nn.MaxPool2d(kernel_size=2),
-            DoubleConv(in_ch, out_ch)
-        )
-
-    def forward(self, x):
-        x = self.mpconv(x)
-        return x
-
-
-class up(nn.Module):
-    ''' Applies a Deconvolution and then applies applies a double convolution pack. '''
-
-    def __init__(self, in_ch, out_ch, bilinear=False):
-        super(up, self).__init__()
-
-        # Bilinear is used to save computational cost
-        if bilinear:
-            self.up = nn.Upsample(
-                scale_factor=2, mode='bilinear', align_corners=True)
-        else:
-            self.up = nn.ConvTranspose2d(
-                in_ch // 2, in_ch // 2, kernel_size=2, stride=2)
-
-        self.conv = DoubleConv(in_ch, out_ch)
-
-    def forward(self, x1, x2):
-        x1 = self.up(x1)
-        diffX = x1.size()[2] - x2.size()[2]
-        diffY = x1.size()[3] - x2.size()[3]
-        x2 = F.pad(input=x2, pad=(diffX // 2, diffX // 2,
-                                  diffY // 2, diffY // 2))
-        x = torch.cat([x2, x1], dim=1)
-        x = self.conv(x)
-        return x
-
-
-class OutConv(nn.Module):
-    ''' Applies the last Convolution to give an answer. '''
-
-    def __init__(self, in_ch, out_ch):
-        super(OutConv, self).__init__()
-
-        self.conv = nn.Conv2d(in_ch, out_ch, kernel_size=1)
-
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-
-class UNet(nn.Module):
-    ''' This Object defines the architecture of U-Net. '''
-
-    def __init__(self, n_channels, n_classes):
-        super(UNet, self).__init__()
-
-        self.inc = InConv(n_channels, 64)
-        self.Down1 = Down(64, 128)
-        self.Down2 = Down(128, 256)
-        self.Down3 = Down(256, 512)
-        self.Down4 = Down(512, 512)
-        self.up1 = up(1024, 256)
-        self.up2 = up(512, 128)
-        self.up3 = up(256, 64)
-        self.up4 = up(128, 64)
-        self.outc = OutConv(64, n_classes)
+class Unet(nn.Module):
+    def __init__(self, channels_in, classes_out):
+        super(Unet, self).__init__()
+        self.inc = inconv(channels_in, 64)
+        self.down1 = down_block(64, 128)
+        self.down2 = down_block(128, 256)
+        self.down3 = down_block(256, 512)
+        self.down4 = down_block(512, 1024)
+        self.down5 = down_block(1024, 2048)
+        self.down6 = down_block(2048, 2048)
+        self.up1 = up_block(4096, 1024)
+        self.up2 = up_block(2048, 512)
+        self.up3 = up_block(1024, 256)
+        self.up4 = up_block(512, 128)
+        self.up5 = up_block(256, 64)
+        self.up6 = up_block(128, 64)
+        self.outc = outconv(64, classes_out)
 
     def forward(self, x):
         x1 = self.inc(x)
-        x2 = self.Down1(x1)
-        x3 = self.Down2(x2)
-        x4 = self.Down3(x3)
-        x5 = self.Down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x6 = self.down5(x5)
+        x7 = self.down6(x6)
+        x = self.up1(x7, x6)
+        x = self.up2(x, x5)
+
+        #print("after up1, before up2: ",x.shape)
+        x = self.up3(x, x4)
+        x = self.up4(x, x3)
+        #print(x.shape)
+        x = self.up5(x, x2)
+        x = self.up6(x, x1)
+        #print(x.shape)
         x = self.outc(x)
         return x
+
+if __name__ == "__main__":
+    model = Unet(3,1).cuda()
+    x = Variable(torch.FloatTensor(np.random.random((1, 3, 512, 512))))
+    out = model(x)
+    loss = torch.sum(out)
+    loss.backward()
