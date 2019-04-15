@@ -1,6 +1,6 @@
 from tqdm import tqdm
 
-def train_step(model, device, dataloader, loss_fn, optimizer):
+def train_step(model, dataloader, loss_fn, optimizer):
 
 	running_loss = 0
 	n_steps = len(dataloader)
@@ -8,7 +8,7 @@ def train_step(model, device, dataloader, loss_fn, optimizer):
 	model.train()
 	for (image, mask) in tqdm(dataloader, total=n_steps):
 
-		image, mask = image.to(device), mask.to(device)
+		image, mask = image.cuda(), mask.cuda()
 		logits = model(image)
 		loss = loss_fn(logits, mask)
 		iter_loss = loss.item()
@@ -22,7 +22,7 @@ def train_step(model, device, dataloader, loss_fn, optimizer):
 
 	return loss_train
 
-def valid_step(model, device, dataloader, loss_fn):
+def valid_step(model, dataloader, loss_fn):
 
 	running_loss = 0
 	n_steps = len(dataloader)
@@ -30,7 +30,7 @@ def valid_step(model, device, dataloader, loss_fn):
 	model.eval()
 	for (image, mask) in tqdm(dataloader, total=n_steps):
 
-		image, mask = image.to(device), mask.to(device)
+		image, mask = image.cuda(), mask.cuda()
 		logits = model(image)
 		loss = loss_fn(logits, mask)
 		running_loss += loss.item()

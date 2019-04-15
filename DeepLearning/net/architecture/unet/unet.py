@@ -1,10 +1,10 @@
 from torch.autograd import Variable
-from .unet_layers import *
+from DeepLearning.net.architecture.unet.unet_layers import *
 import numpy as np
 
-class Unet(nn.Module):
+class unet(nn.Module):
     def __init__(self, channels_in, classes_out):
-        super(Unet, self).__init__()
+        super(unet, self).__init__()
         self.inc = inconv(channels_in, 64)
         self.down1 = down_block(64, 128)
         self.down2 = down_block(128, 256)
@@ -42,8 +42,8 @@ class Unet(nn.Module):
         return x
 
 if __name__ == "__main__":
-    model = Unet(3,1).cuda()
-    x = Variable(torch.FloatTensor(np.random.random((1, 3, 512, 512))))
+    model = unet(3,1).cuda()
+    x = Variable(torch.FloatTensor(np.random.random((4, 3, 512, 512))).cuda())
     out = model(x)
     loss = torch.sum(out)
     loss.backward()
