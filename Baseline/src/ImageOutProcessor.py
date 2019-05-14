@@ -3,6 +3,10 @@ import datetime as dt
 import cv2
 
 class ImageOutProcessor:
+    """
+    Base class for writing and openning images
+    (operation for addition image to vector, writing to file)
+    """
     def __init__(self, file_name):
         self.vector = []
         self.images = []
@@ -22,6 +26,10 @@ class ImageOutProcessor:
         self.vector.append(object1)
         self.name.append(name)
 
+    def addImage(self, image, name):
+        self.images.append(image)
+        self.image_name.append(name)
+
     def printImage(self):
         len_of_images = len(self.images)
         for i in range(0, len_of_images):
@@ -36,6 +44,3 @@ class ImageOutProcessor:
             file = open(string, 'w+')
             file.write(str(self.vector[i]))
 
-    def addImage(self, image, name):
-        self.images.append(image)
-        self.image_name.append(name)

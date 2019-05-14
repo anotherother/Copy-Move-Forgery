@@ -12,6 +12,7 @@ from scipy.spatial import distance
 from Baseline.src.ImageOutProcessor import ImageOutProcessor
 from Baseline.src.ObjectDescription import ObjectDescription
 
+
 ###############THRESHOLD_CONTROL########################
 G2NN_THRESHOLD=0.5
 MIN_CLUSTER_SIZE_CONTROL=4
@@ -238,33 +239,34 @@ def drawLinesOnImage(f1,f2,cluster_img):
     img = cluster_img
     for i in range(0, len(f1), 2):
         cv2.line(img, (int(f1[i].pt[0]), int(f1[i].pt[1])), (int(f2[i].pt[0]), int(f2[i].pt[1])), (0,255,0), 1, cv2.LINE_AA)
-    
-    ObjProcessor.addImage(img,"result") 
+    ObjProcessor.addImage(img,"result")
+
 def initialize():
     global COLOR_IMAGE
     global KP
     global LOGS
     global APPROX_IMAGE
     global NOW
-    global ObjProcessor 
+    global ObjProcessor
     COLOR_IMAGE=[]
     KP=[]
     LOGS=""
     APPROX_IMAGE=[]
     NOW=""
     ObjProcessor=''
-    
+
 
 def main(file_name):
-    initialize()
+    initialize() # Initialise params
     global ObjProcessor
     global KP
     global LOGS
     global COLOR_IMAGE
-    ObjProcessor=ImageOutProcessor(file_name[1])
-    np.set_printoptions(threshold=np.nan)
+
+    ObjProcessor = ImageOutProcessor(file_name[1]) # Initialise object out processor class
+    np.set_printoptions(threshold=np.nan) # set printing options (nan)
     
-    image=input(file_name[0])
+    image=input(file_name[0]) # read first image from filenames list
 
     start=time.clock()
     print(dt.datetime.now())    
@@ -301,7 +303,7 @@ def main(file_name):
 if __name__ == "__main__":
     DIR=os.path.abspath(__file__)
     DIR=str(DIR)
-    DIR=DIR.replace(str(os.path.basename(__file__)),"Input_2/")
+    DIR=DIR.replace(str(os.path.basename(__file__)),"Input/")
     list_dir=os.listdir(DIR)
 
     for name in list_dir:

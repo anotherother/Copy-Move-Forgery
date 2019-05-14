@@ -14,10 +14,10 @@ if __name__ == '__main__':
     parser.add_argument("--image_size", default=256,
                         help='size of input image')
     parser.add_argument("--n_epoch", default=50, help='Number of epochs for training')
-    parser.add_argument("--optimizer", default='Adam', help='Choose optimizer. May be Adam or SGD')
-    parser.add_argument("--batch_size", default=4, help='Size of batch for training')
+    parser.add_argument("--optimizer", default='adam', help='Choose optimizer. May be Adam or SGD')
+    parser.add_argument("--batch_size", default=32, help='Size of batch for training')
     parser.add_argument('--lr', dest='lr', default=0.001, help='learning rate')
-    parser.add_argument('--loss', dest='loss', default="bce", choices=["dice", "bce"],
+    parser.add_argument('--loss', dest='loss', default="mce", choices=["dice", "bce", 'mce'],
                       help='Loss functios to use.')
 
     args = parser.parse_args()
@@ -27,7 +27,8 @@ if __name__ == '__main__':
 
     use_cuda = torch.cuda.is_available()
 
-    net = unet(channels_in=3, classes_out=1).cuda()
+    net = unet(n_channels=3, n_classes=1).cuda()
+    net = nn.DataParallel(net)
 
     optimizer = None
     if args.optimizer == "adam":
@@ -43,7 +44,9 @@ if __name__ == '__main__':
         criterion = DiceLoss()
     elif args.loss == "bce":
         criterion = nn.BCELoss()
+    elif args.loss == "mce":
+        criterion = nn.MSELoss()
 
     for epoch_idx in range(args.n_epoch):
-        loss_train, time_exe = train_step(model=net, dataloader=dataloader, loss_fn=criterion, optimizer=optimizer)
+        loss_train = train_step(model=net, dataloader=dataloader, loss_fn=criterion, optimizer=optimizer)
         print('Loss Train {}'.format(loss_train))

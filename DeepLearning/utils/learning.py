@@ -10,7 +10,7 @@ def train_step(model, dataloader, loss_fn, optimizer):
 
 		image, mask = image.cuda(), mask.cuda()
 		logits = model(image)
-		loss = loss_fn(logits, mask)
+		loss = loss_fn(logits.view(-1), mask.view(-1))
 		iter_loss = loss.item()
 		running_loss += iter_loss
 
@@ -32,7 +32,7 @@ def valid_step(model, dataloader, loss_fn):
 
 		image, mask = image.cuda(), mask.cuda()
 		logits = model(image)
-		loss = loss_fn(logits, mask)
+		loss = loss_fn(logits.view(-1), mask.view(-1))
 		running_loss += loss.item()
 
 	loss_valid = running_loss / n_steps

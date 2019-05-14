@@ -8,7 +8,7 @@ import numpy as np
 class CoMoFodDataloader(Dataset):
     def __init__(self, datasetPath, imgSize):
         self.datasetPath = datasetPath
-        self.images = self.__get_all_files()
+        self.images = list(filter(lambda x: x.split('_')[1] in ['F', 'O'], self.__get_all_files()))
         self.imgSize = imgSize
 
     def __len__(self):
@@ -18,16 +18,20 @@ class CoMoFodDataloader(Dataset):
         image_name = self.images[idx]
         # Load Image
         img = cv2.imread(os.path.join(self.datasetPath, image_name))
+        # img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.cv2.COLOR_RGBA2RGB)#[:,:,:3]
+
+        mask = self.__get_image_mask(image_name)
         # resize to new shape
         img = self.__pad_resize(img, size=self.imgSize)
-        mask = self.__get_image_mask(image_name).transpose(2, 0, 1)
+        mask = self.__pad_resize(mask,size=self.imgSize)[np.newaxis, :,:]
 
         # Normalize RGB
         img = img[:, :, ::-1].transpose(2, 0, 1)
         img = np.ascontiguousarray(img, dtype=np.float32)
         img /= 255.0
 
-        return torch.from_numpy(img).float(), torch.from_numpy(mask[0, :, :]).float()
+        return torch.from_numpy(img).float(), torch.from_numpy(mask).float()
 
     def __get_image_mask(self, img_name):
 
@@ -44,8 +48,8 @@ class CoMoFodDataloader(Dataset):
             return np.zeros((self.imgSize, self.imgSize, 1), np.uint8)
         elif img_name.split('_')[1] == 'F':
             fullname =os.path.join(self.datasetPath, img_name.split('_')[0] + '_B.png')
-            mask = cv2.imread(fullname)
-            return self.__pad_resize(mask, self.imgSize)
+            mask = cv2.imread(fullname, cv2.IMREAD_GRAYSCALE)
+            return mask[:,:, np.newaxis]
 
     def __get_all_files(self):
         imageFiles = os.listdir(self.datasetPath)
@@ -73,4 +77,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dataloader = CoMoFodDataloader(datasetPath=args.dataset_path, imgSize=args.image_size)
-    img, mask = next(iter(dataloader))
+    for _ in range(100):
+        img, mask = next(iter(dataloader))
